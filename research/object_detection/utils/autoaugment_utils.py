@@ -24,14 +24,17 @@ import math
 import six
 import tensorflow.compat.v1 as tf
 
-# pylint: disable=g-import-not-at-top
-try:
-  from tensorflow.contrib import image as contrib_image
-  from tensorflow.contrib import training as contrib_training
-except ImportError:
-  # TF 2.0 doesn't ship with contrib.
-  pass
-# pylint: enable=g-import-not-at-top
+from tensorflow_addons import image as contrib_image
+from collections import namedtuple
+
+# # pylint: disable=g-import-not-at-top
+# try:
+#   from tensorflow.contrib import image as contrib_image
+#   from tensorflow.contrib import training as contrib_training
+# except ImportError:
+#   # TF 2.0 doesn't ship with contrib.
+#   pass
+# # pylint: enable=g-import-not-at-top
 
 # This signifies the max integer that the controller RNN could predict for the
 # augmentation scheme.
@@ -1608,6 +1611,8 @@ def build_and_apply_nas_policy(policies, image, bboxes,
   # If no bounding boxes were specified, then just return the images.
   return (augmented_image, augmented_bbox)
 
+def hparams(**kwargs):
+    return namedtuple("HParams", kwargs.keys())(*kwargs.values())
 
 # TODO(barretzoph): Add in ArXiv link once paper is out.
 def distort_image_with_autoaugment(image, bboxes, augmentation_name):
@@ -1636,7 +1641,7 @@ def distort_image_with_autoaugment(image, bboxes, augmentation_name):
 
   policy = available_policies[augmentation_name]()
   # Hparams that will be used for AutoAugment.
-  augmentation_hparams = contrib_training.HParams(
+  augmentation_hparams = hparams(
       cutout_max_pad_fraction=0.75,
       cutout_bbox_replace_with_mean=False,
       cutout_const=100,
