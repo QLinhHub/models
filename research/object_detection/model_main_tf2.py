@@ -99,6 +99,11 @@ def main(unused_argv):
     elif FLAGS.num_workers > 1:
       strategy = tf.distribute.experimental.MultiWorkerMirroredStrategy()
     else:
+      gpus = tf.config.experimental.list_physical_devices('GPU')
+      for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
+
+      # this strategy will use all the available GPUs. If no GPUs are found, it will use the available CPUs.
       strategy = tf.compat.v2.distribute.MirroredStrategy()
 
     with strategy.scope():
