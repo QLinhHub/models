@@ -30,6 +30,8 @@ from absl import flags
 import tensorflow.compat.v2 as tf
 from object_detection import model_lib_v2
 
+from clearml import Task
+
 flags.DEFINE_string('pipeline_config_path', None, 'Path to pipeline config '
                     'file.')
 flags.DEFINE_integer('num_train_steps', None, 'Number of train steps.')
@@ -70,13 +72,28 @@ flags.DEFINE_boolean('record_summaries', True,
                       ' summaries of the loss values which are always'
                       ' recorded.'))
 
+flags.DEFINE_string(
+    'project_name',
+    'TF2 OD',
+    'Name of the project for Trains logging',
+)
+flags.DEFINE_string(
+    'task_name',
+    'object detection',
+    'Name of the task for Trains logging',
+)
+
 FLAGS = flags.FLAGS
 
 
 def main(unused_argv):
   flags.mark_flag_as_required('model_dir')
   flags.mark_flag_as_required('pipeline_config_path')
+  flags.mark_flag_as_required('task_name')
   tf.config.set_soft_device_placement(True)
+
+  task = Task.init(project_name=FLAGS.project_name, task_name=FLAGS.task_name)
+  task.connect_configuration(FLAGS.pipeline_config_path)
 
   if FLAGS.checkpoint_dir:
     model_lib_v2.eval_continuously(
