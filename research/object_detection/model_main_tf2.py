@@ -132,7 +132,8 @@ def main(unused_argv):
           use_tpu=FLAGS.use_tpu,
           checkpoint_every_n=FLAGS.checkpoint_every_n,
           checkpoint_max_to_keep=FLAGS.checkpoint_max_to_keep,      
-          record_summaries=FLAGS.record_summaries)
+          record_summaries=FLAGS.record_summaries,
+          save_final_config=True)
 
 if __name__ == '__main__':
   tf.compat.v1.app.run()
