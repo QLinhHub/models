@@ -104,6 +104,10 @@ from google.protobuf import text_format
 from object_detection import exporter_lib_v2
 from object_detection.protos import pipeline_pb2
 
+import json
+import sys
+import fileinput  
+
 tf.enable_v2_behavior()
 
 
@@ -143,13 +147,51 @@ flags.DEFINE_string('side_input_names', '',
                     'the names of the side input tensors required by the model '
                     'assuming the names will be a comma-separated list of '
                     'strings. This flag is required if using side inputs.')
+flags.DEFINE_integer('num_step', None,
+                      'export model at this step.')
+flags.DEFINE_string('json_data', None,
+                    'json data file download from clearml.')
 
 flags.mark_flag_as_required('pipeline_config_path')
 flags.mark_flag_as_required('trained_checkpoint_dir')
 flags.mark_flag_as_required('output_directory')
+flags.mark_flag_as_required('json_data')
 
+def get_ckpt_from_step(checkpoint_file, precision_json, num_step):
+  # this function return the ckpt to be exported given num_step
+  def get_num_ckpt(precision_json, num_step):
+    json_f = open(precision_json)
+
+    data = json.load(json_f)
+    
+    # get ckpt to be exported
+    if num_step == None:
+      num_step = data[0]['x'][-1]
+      
+    ckpt = data[0]['x'].index(num_step) + 1
+    json_f.close()
+
+    return ckpt
+  
+  def replace_line_in_checkpoint(line_new, checkpoint_file):
+    f = open(checkpoint_file)
+    line_to_replace = f.readline() # replace only first like in checkpoint
+    f.close()
+    
+    for i, line in enumerate(fileinput.input(checkpoint_file, inplace=1)):
+	    sys.stdout.write(line.replace(line_to_replace, line_new))
+
+  ckpt = get_num_ckpt(precision_json, num_step)   
+  line_new = 'model_checkpoint_path: "ckpt-{}"\n'.format(ckpt)
+
+  replace_line_in_checkpoint(line_new, checkpoint_file)
 
 def main(_):
+  # modify checkpoint summary file in trained_checkpoint_dir
+  # adapt to the num_step
+  checkpoint_file = FLAGS.trained_checkpoint_dir + '/checkpoint'
+  get_ckpt_from_step(checkpoint_file, FLAGS.json_data, FLAGS.num_step)
+
   pipeline_config = pipeline_pb2.TrainEvalPipelineConfig()
   with tf.io.gfile.GFile(FLAGS.pipeline_config_path, 'r') as f:
     text_format.Merge(f.read(), pipeline_config)
