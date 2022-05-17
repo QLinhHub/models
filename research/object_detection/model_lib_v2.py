@@ -23,6 +23,10 @@ import os
 import pprint
 import time
 
+import sys
+import fileinput 
+import re
+
 import numpy as np
 import tensorflow.compat.v1 as tf
 
@@ -1018,6 +1022,30 @@ def eager_eval_loop(
     tf.logging.info('\t+ %s: %f', k, eval_metrics[k])
   return eval_metrics
 
+def increase_num_ckpt(checkpoint_file, max_ckpt):
+  """This function is used for post evaluation. This help to iterate from first checkpoint
+  to the max_ckpt.
+
+  Args:
+    checkpoint_file: path to checkpoint file in checkpoints dir. 
+    max_ckpt: max number of checkpoint in checkpoints dir.
+  Returns:
+    (Bool) True if num ckpt is increased.
+  """
+  f = open(checkpoint_file)
+  line_to_replace = f.readline() # replace only first like in checkpoint
+  f.close()
+
+  # new ckpt to replace
+  ckpt = int(re.findall(r'\d+', line_to_replace)[0])  
+
+  if ckpt < max_ckpt: 
+    line_new = 'model_checkpoint_path: "ckpt-{}"\n'.format(ckpt+1)
+
+    for i, line in enumerate(fileinput.input(checkpoint_file, inplace=1)):
+      sys.stdout.write(line.replace(line_to_replace, line_new))
+    
+    return True
 
 def eval_continuously(
     pipeline_config_path,
@@ -1034,6 +1062,7 @@ def eval_continuously(
     timeout=3600,
     eval_index=0,
     save_final_config=False,
+    post_eval_max_ckpt=None,
     **kwargs):
   """Run continuous evaluation of a detection model eagerly.
 
@@ -1164,6 +1193,16 @@ def eval_continuously(
           postprocess_on_cpu=postprocess_on_cpu,
           global_step=global_step,
           )
+
+    if post_eval_max_ckpt is not None:  
+      checkpoint_file = checkpoint_dir + "/checkpoint"
+      if (increase_num_ckpt(checkpoint_file, post_eval_max_ckpt)):
+        pass
+      else:
+        tf.logging.info('Exiting evaluation at step %d', post_eval_max_ckpt)
+        return
+    else:
+      pass
 
     if global_step.numpy() == configs['train_config'].num_steps:
       tf.logging.info('Exiting evaluation at step %d', global_step.numpy())

@@ -71,6 +71,8 @@ flags.DEFINE_boolean('record_summaries', True,
                       ' or the training pipeline. This does not impact the'
                       ' summaries of the loss values which are always'
                       ' recorded.'))
+flags.DEFINE_integer('post_eval_max_ckpt', None,
+                      'number of checkpoints in checkpoints dir after training.')
 
 flags.DEFINE_string(
     'project_name',
@@ -104,6 +106,7 @@ def main(unused_argv):
         sample_1_of_n_eval_on_train_examples=(
             FLAGS.sample_1_of_n_eval_on_train_examples),
         checkpoint_dir=FLAGS.checkpoint_dir,
+        post_eval_max_ckpt=FLAGS.post_eval_max_ckpt,
         wait_interval=FLAGS.wait_interval, timeout=FLAGS.eval_timeout)
   else:
     if FLAGS.use_tpu:
